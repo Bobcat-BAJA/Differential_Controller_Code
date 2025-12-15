@@ -1,36 +1,33 @@
-#include "can_arbitration_hw.h"
-#include <FlexCAN_T4.h>
 #include <Arduino.h>
+#include <FlexCAN_T4.h>
+#include "can_arbitration_hw.h"
 
-FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> CANbus;
-CAN_message_t frame;
-#define CAN_ARB_ID 0x51  // CAN ID for diff control messages
+FlexCAN_T4<CAN1, RX_SIZE_256, TX_SIZE_16> Can1;
 
-void can_hw_init(void)
+void can_hw_init()
 {
-    CANbus.begin();
-    CANbus.setBaudRate(500000);
-    CANbus.enableFIFO();
+    Can1.begin();
+    Can1.setBaudRate(500000);
+    Can1.enableFIFO();
 }
 
-void can_hw_send(uint8_t signature, uint8_t command)
+bool can_hw_send(uint8_t sender, uint8_t command, uint8_t signature)
 {
-    frame.id  = CAN_ARB_ID;
+    CAN_message_t frame;
+    frame.id = sender;
     frame.len = 2;
-    frame.buf[0] = signature;
-    frame.buf[1] = command;
-    CANbus.write(frame);
+    frame.buf[0] = command;
+    frame.buf[1] = signature;
+    return Can1.write(frame);
 }
 
-bool can_hw_receive(uint8_t *signature, uint8_t *command, uint8_t *sender)
+bool can_hw_receive(uint8_t *sender, uint8_t *command, uint8_t *signature)
 {
-    if (CANbus.read(frame))
-    {
-        if (frame.id != CAN_ARB_ID) return false;
-        *signature = frame.buf[0];
-        *command   = frame.buf[1];
-        *sender    = frame.ext ? 1 : 0;
-        return true;
-    }
-    return false;
+    CAN_message_t frame;
+    if (!Can1.read(frame)) return false;
+
+    *sender = frame.id & 0xFF;
+    *command = frame.buf[0];
+    *signature = frame.buf[1];
+    return true;
 }
