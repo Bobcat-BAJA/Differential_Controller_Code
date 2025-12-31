@@ -4,13 +4,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-/* Initialize CAN hardware */
 void can_hw_init(void);
-
-/* Send a command with a signature over CAN */
-void can_hw_send(uint8_t signature, uint8_t command);
-
-/* Receive a CAN message. Returns true if a message was received */
-bool can_hw_receive(uint8_t *signature, uint8_t *command, uint8_t *sender);
+bool can_hw_send(uint16_t can_id, uint8_t *data, uint8_t dlc);
+bool can_hw_receive(uint16_t *can_id, uint8_t *data, uint8_t *dlc);
 
 #endif
