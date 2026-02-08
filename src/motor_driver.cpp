@@ -1,41 +1,53 @@
 #include "motor_driver.h"
-#include "DRV8214.h"
-#include <Wire.h>
 
-DRV8214 motorDriver(0x60, 0, 3600, 156, 0, 1, 3000);
-DRV8214_Config cfg;
-static bool motorMoving = false;
+static bool motorActive = false;
 
 void motor_driver_init(void)
 {
-    Wire.begin();
-    motorDriver.init(cfg);
+    pinMode(PIN_EN, OUTPUT);
+    pinMode(PIN_PH, OUTPUT);
+    pinMode(PIN_SLEEP, OUTPUT);
+    pinMode(PIN_FAULT, INPUT_PULLUP);
+
+    // Wake driver
+    digitalWrite(PIN_SLEEP, HIGH);
+
+    // Motor disabled initially
+    digitalWrite(PIN_EN, LOW);
+    digitalWrite(PIN_PH, LOW);
+
+    motorActive = false;
 }
 
 void motor_driver_command(motor_command_t dir)
 {
-    if (dir == MOTOR_FORWARD)
-        motorDriver.turnXRipples(50000, true, true, 1);
-    else if (dir == MOTOR_REVERSE)
-        motorDriver.turnXRipples(50000, false, true, 1);
-    else
+    if (dir == MOTOR_STOP) {
         motor_driver_stop();
+        return;
+    }
 
-    motorMoving = (dir != MOTOR_STOP);
+    // Direction
+    digitalWrite(PIN_PH, (dir == MOTOR_FORWARD) ? HIGH : LOW);
+
+    // Enable motor
+    digitalWrite(PIN_EN, HIGH);
+    motorActive = true;
 }
 
 void motor_driver_stop(void)
 {
-    motorDriver.turnXRipples(0, false, false, 0);
-    motorMoving = false;
+    digitalWrite(PIN_EN, LOW);
+    motorActive = false;
 }
 
 bool motor_driver_fault_active(void)
 {
-    return false;
+    // DRV8214 FAULT is active LOW
+    return digitalRead(PIN_FAULT) == LOW;
 }
 
 bool motor_driver_is_active(void)
 {
-    return motorMoving;
+    return motorActive;
 }
+
